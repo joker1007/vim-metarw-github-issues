@@ -175,7 +175,30 @@ function! s:read_content(repo, number) " {{{
         \}
 
   command! -buffer IssueBrowse call s:open_browser()
+
+  call s:fetch_comments(a:repo, a:number)
   return ['done', '']
+endfunction " }}}
+
+function! s:fetch_comments(repo, number) " {{{
+  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number . '/comments'), {}, s:basic_header())
+
+  if res.status !~ "^2.*"
+    return ['error', 'Failed to fetch item']
+  endif
+
+  let content = webapi#json#decode(res.content)
+
+  let comments = map(content,
+        \ '{"body": v:val.body, "user": v:val.user.login, "id": v:val.id, "created_at" : v:val.created_at}')
+
+  for comment in comments
+    let sep ="\n------------------------------------------------------------\n"
+    put =sep
+    let info = comment.user . " posted at " . comment.created_at "\n\n"
+    put =info
+    put =comment.body
+  endfor
 endfunction " }}}
 
 function! s:issue_title(issue, view_repository) " {{{
