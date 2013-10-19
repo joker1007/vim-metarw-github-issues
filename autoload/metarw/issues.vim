@@ -53,7 +53,7 @@ function! s:basic_header() " {{{
         \ }
 endfunction " }}}
 
-function! s:api_path(path, ...) " {{{
+function! s:api_url(path, ...) " {{{
   let query = []
 
   if exists('g:github_issues_per_page')
@@ -97,14 +97,21 @@ function! s:labels_to_line(_) " {{{
   return join(map(a:_, 'v:val.name'), " ")
 endfunction " }}}
 
-function! s:pagenation_helper(list, fakepath, header, page) " {{{
+function! s:next_page_link(_, header) " {{{
   if join(a:header, ', ') =~# "Link: <.*>"
-    let next_page = a:page + 1
+    let options = deepcopy(a:_.options)
+    let options.page = options.page + 1
+    let query = []
+    for [key, val] in items(options)
+      call add(query, key . "=" . val)
+    endfor
     let link_to_next = {
           \ "label" : "[Fetch next page]",
-          \ "fakepath" : a:fakepath . '?page=' . next_page
+          \ "fakepath" : split(a:_.fakepath, "?")[0] . '?' . join(query, "&")
           \ }
-    call add(a:list, link_to_next)
+    return link_to_next
+  else
+    return {}
   endif
 endfunction " }}}
 
@@ -123,10 +130,8 @@ endfunction " }}}
 function! s:post_current(repo) " {{{
   let data = s:construct_post_data()
   let json = webapi#json#encode(data)
-  echoerr "hoge"
-  let res = webapi#http#post(s:api_path("repos/" . a:repo . "/issues"), json, s:basic_header())
+  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues"), json, s:basic_header())
   let content = webapi#json#decode(res.content)
-  echo s:api_path("/repos" . a:repo . "/issues")
 
   if res.status =~ "^2.*"
     echomsg content.html_url
@@ -139,7 +144,7 @@ endfunction " }}}
 function! s:update_issue(repo, number) " {{{
   let data = s:construct_post_data()
   let json = webapi#json#encode(data)
-  let res = webapi#http#post(s:api_path("repos/" . a:repo . "/issues/" . a:number), json, s:basic_header(), "PATCH")
+  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues/" . a:number), json, s:basic_header(), "PATCH")
   let content = webapi#json#decode(res.content)
 
   if res.status =~ "^2.*"
@@ -151,7 +156,7 @@ function! s:update_issue(repo, number) " {{{
 endfunction " }}}
 
 function! s:read_content(repo, number) " {{{
-  let res = webapi#http#get(s:api_path("repos/" . a:repo . '/issues/' . a:number), {}, s:basic_header())
+  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number), {}, s:basic_header())
 
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch item']
@@ -197,8 +202,8 @@ function! s:issue_title(issue, view_repository) " {{{
   return title
 endfunction " }}}
 
-function! s:read_issue_list(url, fakepath, view_repository) " {{{
-  let res = webapi#http#get(a:url, {}, s:basic_header())
+function! s:read_issue_list(_, view_repository) " {{{
+  let res = webapi#http#get(s:api_url(a:_.path, a:_.options), {}, s:basic_header())
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch issues']
   endif
@@ -213,7 +218,10 @@ function! s:read_issue_list(url, fakepath, view_repository) " {{{
     call add(list, {"label" : label, "fakepath" : issue_fakepath})
   endfor
 
-  " call s:pagenation_helper(list, a:fakepath, res.header, page)
+  let next_page_link = s:next_page_link(a:_, res.header)
+  if !empty(next_page_link)
+    call add(list, next_page_link)
+  endif
 
   return ["browse", list]
 endfunction " }}}
@@ -293,15 +301,17 @@ endfunction " }}}
 
 function! metarw#issues#read(fakepath) " {{{
   let _ = s:parse_incomplete_fakepath(a:fakepath)
+  let _.fakepath = a:fakepath
   if _.mode == "repo_list"
-    let url = s:api_path("repos/" . _.repo . "/issues")
-    return s:read_issue_list(url, a:fakepath, 0)
+    let _.path = "repos/" . _.repo . "/issues"
+    return s:read_issue_list(_, 0)
   elseif _.mode == "org_list"
-    let url = s:api_path("orgs/" . _.repo . "/issues", _.options)
-    return s:read_issue_list(url, a:fakepath, 1)
+    let _.path = "orgs/" . _.repo . "/issues"
+    return s:read_issue_list(_, 1)
   elseif _.mode == "user_list"
     let url = s:api_path("user/issues", _.options)
-    return s:read_issue_list(url, a:fakepath, 1)
+    let _.path = "user/issues"
+    return s:read_issue_list(_, 1)
   elseif _.mode == "issue"
     return s:read_content(_.repo, _.number)
   else
