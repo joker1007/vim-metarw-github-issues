@@ -41,17 +41,15 @@ if !executable('curl')
   finish
 endif
 
-function! s:endpoint_url() " {{{
-  return "https://api.github.com/"
-endfunction " }}}
+let s:comment_separator ="\n------------------------------------------------------------\n"
 
-function! s:basic_header() " {{{
-  return {
+let s:endpoint_url = "https://api.github.com/"
+
+let s:basic_header = {
         \ "User-Agent" : "vim-metarw-github-issues",
         \ "Content-type" : "application/json",
         \ "Authorization" : "token " . g:github_token,
         \ }
-endfunction " }}}
 
 function! s:api_url(path, ...) " {{{
   let query = []
@@ -66,7 +64,7 @@ function! s:api_url(path, ...) " {{{
     endfor
   endif
 
-  let path = s:endpoint_url() . a:path
+  let path = s:endpoint_url . a:path
 
   if !empty(query)
     let path = path . "?" . join(query, "&")
@@ -80,7 +78,7 @@ function! s:parse_title() " {{{
 endfunction " }}}
 
 function! s:parse_body() " {{{
-  return join(getline(4, "$"), "\n")
+  return split(join(getline(4, "$"), "\n"), s:comment_separator)[0]
 endfunction " }}}
 
 function! s:parse_labels() " {{{
@@ -130,7 +128,7 @@ endfunction " }}}
 function! s:post_current(repo) " {{{
   let data = s:construct_post_data()
   let json = webapi#json#encode(data)
-  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues"), json, s:basic_header())
+  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues"), json, s:basic_header)
   let content = webapi#json#decode(res.content)
 
   if res.status =~ "^2.*"
@@ -144,7 +142,7 @@ endfunction " }}}
 function! s:update_issue(repo, number) " {{{
   let data = s:construct_post_data()
   let json = webapi#json#encode(data)
-  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues/" . a:number), json, s:basic_header(), "PATCH")
+  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues/" . a:number), json, s:basic_header, "PATCH")
   let content = webapi#json#decode(res.content)
 
   if res.status =~ "^2.*"
@@ -156,7 +154,7 @@ function! s:update_issue(repo, number) " {{{
 endfunction " }}}
 
 function! s:read_content(repo, number) " {{{
-  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number), {}, s:basic_header())
+  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number), {}, s:basic_header)
 
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch item']
@@ -181,7 +179,7 @@ function! s:read_content(repo, number) " {{{
 endfunction " }}}
 
 function! s:fetch_comments(repo, number) " {{{
-  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number . '/comments'), {}, s:basic_header())
+  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number . '/comments'), {}, s:basic_header)
 
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch item']
@@ -193,11 +191,11 @@ function! s:fetch_comments(repo, number) " {{{
         \ '{"body": v:val.body, "user": v:val.user.login, "id": v:val.id, "created_at" : v:val.created_at}')
 
   for comment in comments
-    let sep ="\n------------------------------------------------------------\n"
-    put =sep
-    let info = comment.user . " posted at " . comment.created_at "\n\n"
+    put =s:comment_separator
+    let info = comment.user . " posted at " . comment.created_at "\n"
     put =info
-    put =comment.body
+    let body = "\n" . comment.body
+    put =body
   endfor
 endfunction " }}}
 
@@ -226,7 +224,7 @@ function! s:issue_title(issue, view_repository) " {{{
 endfunction " }}}
 
 function! s:read_issue_list(_, view_repository) " {{{
-  let res = webapi#http#get(s:api_url(a:_.path, a:_.options), {}, s:basic_header())
+  let res = webapi#http#get(s:api_url(a:_.path, a:_.options), {}, s:basic_header)
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch issues']
   endif

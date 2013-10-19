@@ -29,7 +29,14 @@ let g:github_per_page=50 " Max 100
 ### Post current buffer as new item
 
 ```
-:write issues:
+:write issues:repos/:owner/:repo
+```
+
+### Open a issue
+
+
+```
+:edit issues:repos/:owner/:repo/issues/:number
 ```
 
 ### Get issues for repository
