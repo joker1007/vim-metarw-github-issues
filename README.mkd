@@ -26,3 +26,33 @@ let g:github_token='xxxxxx' " API経由で取得しておく
 let g:github_per_page=50 " Max 100
 ```
 
+### Post current buffer as new item
+
+```
+:write issues:
+```
+
+### Get issues for repository
+
+
+```
+:edit issues:repos/:owner/:repo
+```
+
+### Update current open item
+
+```
+:write
+```
+
+### Get issues for organization
+
+```
+:edit issues:orgs/:org?filter=all
+```
+
+### Open by browser
+
+```
+:IssueBrowse
+```
