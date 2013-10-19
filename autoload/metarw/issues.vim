@@ -45,13 +45,13 @@ let s:comment_separator ="\n----------------------------------------------------
 
 let s:endpoint_url = "https://api.github.com/"
 
-let s:basic_header = {
+let g:github_request_header = {
         \ "User-Agent" : "vim-metarw-github-issues",
         \ "Content-type" : "application/json",
         \ "Authorization" : "token " . g:github_token,
         \ }
 
-function! s:api_url(path, ...) " {{{
+function! metarw#issues#api_url(path, ...) " {{{
   let query = []
 
   if exists('g:github_issues_per_page')
@@ -128,7 +128,7 @@ endfunction " }}}
 function! s:post_current(repo) " {{{
   let data = s:construct_post_data()
   let json = webapi#json#encode(data)
-  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues"), json, s:basic_header)
+  let res = webapi#http#post(metarw#issues#api_url("repos/" . a:repo . "/issues"), json, g:github_request_header)
   let content = webapi#json#decode(res.content)
 
   if res.status =~ "^2.*"
@@ -142,7 +142,7 @@ endfunction " }}}
 function! s:update_issue(repo, number) " {{{
   let data = s:construct_post_data()
   let json = webapi#json#encode(data)
-  let res = webapi#http#post(s:api_url("repos/" . a:repo . "/issues/" . a:number), json, s:basic_header, "PATCH")
+  let res = webapi#http#post(metarw#issues#api_url("repos/" . a:repo . "/issues/" . a:number), json, g:github_request_header, "PATCH")
   let content = webapi#json#decode(res.content)
 
   if res.status =~ "^2.*"
@@ -154,7 +154,7 @@ function! s:update_issue(repo, number) " {{{
 endfunction " }}}
 
 function! s:read_content(repo, number) " {{{
-  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number), {}, s:basic_header)
+  let res = webapi#http#get(metarw#issues#api_url("repos/" . a:repo . '/issues/' . a:number), {}, g:github_request_header)
 
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch item']
@@ -166,20 +166,24 @@ function! s:read_content(repo, number) " {{{
   put =body
   set ft=markdown
 
-  let b:github_metadata = {
+  let b:issue_metadata = {
         \ 'html_url' : content.html_url,
         \ 'state' : content.state,
         \ 'user' : content.user.login,
+        \ 'repo' : a:repo,
+        \ 'number' : a:number,
         \}
 
   command! -buffer IssueBrowse call s:open_browser()
+  command! -buffer IssueCommentPost 
+        \ call github#comment#open(b:issue_metadata.repo, b:issue_metadata.number)
 
   call s:fetch_comments(a:repo, a:number)
   return ['done', '']
 endfunction " }}}
 
 function! s:fetch_comments(repo, number) " {{{
-  let res = webapi#http#get(s:api_url("repos/" . a:repo . '/issues/' . a:number . '/comments'), {}, s:basic_header)
+  let res = webapi#http#get(metarw#issues#api_url("repos/" . a:repo . '/issues/' . a:number . '/comments'), {}, g:github_request_header)
 
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch item']
@@ -224,7 +228,7 @@ function! s:issue_title(issue, view_repository) " {{{
 endfunction " }}}
 
 function! s:read_issue_list(_, view_repository) " {{{
-  let res = webapi#http#get(s:api_url(a:_.path, a:_.options), {}, s:basic_header)
+  let res = webapi#http#get(metarw#issues#api_url(a:_.path, a:_.options), {}, g:github_request_header)
   if res.status !~ "^2.*"
     return ['error', 'Failed to fetch issues']
   endif
