@@ -175,7 +175,7 @@ function! s:read_content(repo, number) " {{{
         \}
 
   command! -buffer IssueBrowse call s:open_browser()
-  command! -buffer IssueCommentPost 
+  command! -buffer IssueCommentPost
         \ call github#comment#open(b:issue_metadata.repo, b:issue_metadata.number)
 
   call s:fetch_comments(a:repo, a:number)
