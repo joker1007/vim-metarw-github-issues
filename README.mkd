@@ -41,20 +41,36 @@ Caution: Not modify comment separator, otherwise post issue body with comments
 :edit issues:repos/:owner/:repo/issues/:number
 ```
 
-### Get issues for repository
-
-
-```
-:edit issues:repos/:owner/:repo
-```
-
-### Update current open item
+### Update current open issue
 
 ```
 :write
 ```
 
 Caution: Not modify comment separator, otherwise post issue body with comments
+
+### Post new comment to current open issue
+
+Open comment buffer
+
+```
+:IssueCommentPost
+```
+
+and save
+
+```
+:write
+```
+
+Caution: Existing issue buffer is not refreshed. Refresh Manually.
+
+### Get issues for repository
+
+
+```
+:edit issues:repos/:owner/:repo
+```
 
 ### Get issues for organization
 
