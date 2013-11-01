@@ -55,7 +55,7 @@ function! metarw#issues#api_url(path, ...) " {{{
   let query = []
 
   if exists('g:github_issues_per_page')
-    call add(query, "per_page=" . g:qiita_per_page)
+    call add(query, "per_page=" . g:github_per_page)
   endif
 
   if a:0 > 0
@@ -262,10 +262,10 @@ function! s:parse_options(str) " {{{
 endfunction " }}}
 
 function! s:open_browser() " {{{
-  if exists('b:github_metadata')
-    call openbrowser#open(b:github_metadata.html_url)
+  if exists('b:issue_metadata')
+    call openbrowser#open(b:issue_metadata.html_url)
   else
-    echoerr 'Current buffer is not qiita post'
+    echoerr 'Current buffer is not github issue'
   endif
 endfunction " }}}
 
@@ -280,7 +280,7 @@ function! s:parse_incomplete_fakepath(incomplete_fakepath) " {{{
   let fragments = split(a:incomplete_fakepath, '^\l\+\zs:', !0)
   if len(fragments) <= 1
     echoerr 'Unexpected a:incomplete_fakepath:' string(a:incomplete_fakepath)
-    throw 'metarw:qiita#e1'
+    throw 'metarw:github#e1'
   endif
 
   let _.scheme = fragments[0]
