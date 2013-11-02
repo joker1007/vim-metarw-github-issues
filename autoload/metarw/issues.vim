@@ -334,7 +334,6 @@ function! metarw#issues#read(fakepath) " {{{
     let _.path = "orgs/" . _.repo . "/issues"
     return s:read_issue_list(_, 1)
   elseif _.mode == "user_list"
-    let url = s:api_path("user/issues", _.options)
     let _.path = "user/issues"
     return s:read_issue_list(_, 1)
   elseif _.mode == "issue"
