@@ -162,7 +162,7 @@ function! s:read_content(repo, number) " {{{
 
   let content = webapi#json#decode(res.content)
 
-  let body = join([content.title, s:labels_to_line(content.labels), "", content.body], "\n")
+  let body = join([content.title, s:labels_to_line(content.labels), "", substitute(content.body, '\r', '',  "g")], "\n")
   put =body
   set ft=markdown
 
